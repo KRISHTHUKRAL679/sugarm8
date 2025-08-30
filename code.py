@@ -160,3 +160,4 @@ if st.button("Generate Weekly Summary"):
     st.success("Here's your weekly glucose summary:")
     st.markdown(f"```markdown\n{summary}\n```")
 
+
