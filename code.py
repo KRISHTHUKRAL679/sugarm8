@@ -1,19 +1,19 @@
 import streamlit as st
 import pandas as pd
-
+import matplotlib.pyplot as plt
 import numpy as np
 import datetime
 import google.generativeai as genai
 
 
 
-# ✅ Set your Gemini API key here
+
 genai.configure(api_key="AIzaSyDOTHmTYrOxInkOUYy8CTkBvjEz6KZLYiY")
-model = genai.GenerativeModel("gemini-2.0-flash")  # ✅ Correct model name usage
+gemini_model = genai.GenerativeModel("gemini-2.0-flash") 
 
 st.set_page_config(page_title='Sugar M8 - Glucose Tracker', layout='centered')
 
-# 🎨 Custom Styling and Navbar
+
 st.markdown(
     """
     <style>
@@ -74,11 +74,11 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 📅 Date in Sidebar
+
 current_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
 st.sidebar.markdown(f"## 📅 {current_date}")
 
-# 🧪 Glucose Data
+
 def get_glucose_data():
     if 'glucose_data' not in st.session_state:
         st.session_state.glucose_data = {day: [90, 112, 98] for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
@@ -87,7 +87,7 @@ def get_glucose_data():
 data = get_glucose_data()
 
 
-# 📈 Graph Section
+
 st.markdown("### Glucose Level Trend")
 fig, ax = plt.subplots(figsize=(4, 2))
 for i, meal in enumerate(['Breakfast', 'Lunch', 'Dinner']):
@@ -98,7 +98,7 @@ ax.legend()
 ax.grid(True, linestyle='--', alpha=0.6)
 st.pyplot(fig)
 
-# ➕ Add Reading
+
 st.markdown("### Add New Reading")
 day = st.selectbox("Select Day", list(data.keys()))
 breakfast = st.number_input("Breakfast (mg/dL)", min_value=1, step=1, format='%d')
@@ -109,7 +109,7 @@ if st.button("Add Readings", key='add', help='Click to add new glucose readings'
     data[day] = [breakfast, lunch, dinner]
     st.rerun()
 
-# ⚠️ Glucose Alerts
+
 def check_glucose_levels(breakfast, lunch, dinner):
     messages = []
     if breakfast or lunch or dinner:
@@ -125,7 +125,10 @@ if alerts:
     for alert in alerts:
         st.warning(alert)
 
-# 🧮 Estimated A1C
+
+st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
+
+# Estimated A1C
 st.sidebar.markdown("<div class='a1c-section'>Estimated A1C</div>", unsafe_allow_html=True)
 average_glucose = np.mean([val for sublist in data.values() for val in sublist])
 estimated_a1c = (46.7 + average_glucose) / 28.7
@@ -133,8 +136,71 @@ st.sidebar.markdown(f"<div class='a1c-section'>Est. A1C: {estimated_a1c:.2f}%</d
 st.sidebar.markdown(f"<div class='a1c-section'>Avg Glucose: {average_glucose:.1f} mg/dL</div>", unsafe_allow_html=True)
 st.sidebar.markdown(f"<div class='a1c-section'>Highest: {max(max(data.values()))} mg/dL</div>", unsafe_allow_html=True)
 st.sidebar.markdown(f"<div class='a1c-section'>Lowest: {min(min(data.values()))} mg/dL</div>", unsafe_allow_html=True)
+   
 
-# 📝 Weekly Summary Generator
+
+st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
+
+#inputting metrics to predict next glucose reading
+with st.sidebar.expander("➕ Input Daily Health Metrics"):
+    st.markdown("Enter today's additional metrics below:")
+
+    glucose_input = st.number_input("Glucose (mg/dL)", min_value=0.0, step=1.0)
+    calories = st.number_input("Calories", min_value=0.0, step=1.0)
+    heart_rate = st.number_input("Heart Rate (bpm)", min_value=0.0, step=1.0)
+    steps = st.number_input("Steps", min_value=0.0, step=1.0)
+    basal_rate = st.number_input("Basal Rate (units/hr)", min_value=0.0, step=0.1)
+    bolus_volume = st.number_input("Bolus Volume Delivered (units)", min_value=0.0, step=0.1)
+    carb_input = st.number_input("Carb Input (g)", min_value=0.0, step=1.0)
+
+    if st.button("Submit Health Metrics", key="submit_metrics_sidebar"):
+        st.success("✅ Daily health metrics submitted!")
+
+
+if st.button("Submit Health Metrics", key="submit_metrics"):
+    st.session_state.health_metrics = {
+        "glucose": glucose_input,
+        "calories": calories,
+        "heart_rate": heart_rate,
+        "steps": steps,
+        "basal_rate": basal_rate,
+        "bolus_volume": bolus_volume,
+        "carb_input": carb_input,
+    }
+    st.success("✅ Daily health metrics submitted!")
+
+
+import pickle
+
+MODEL_PATH = "xgb_model.pkl"  
+
+try:
+    with open('C:\\Users\\cnata\\Downloads\\model\\xgb_model.pkl','rb') as f:
+        xgb_model = pickle.load(f)
+
+
+    
+    features = np.array([
+        glucose_input,
+        calories,
+        heart_rate,
+        steps,
+        basal_rate,
+        bolus_volume,
+        carb_input
+    ]).reshape(1, -1)
+
+    
+    predicted_glucose = xgb_model.predict(features)[0]
+
+    st.sidebar.markdown("<div class='a1c-section'>🔮 <b>Predicted Next Glucose</b></div>", unsafe_allow_html=True)
+    st.sidebar.markdown(f"<div class='a1c-section'>{predicted_glucose:.2f} mg/dL</div>", unsafe_allow_html=True)
+
+except Exception as e:
+    st.sidebar.error(f"❌ Could not load model or predict. Details: {str(e)}")
+
+
+
 st.markdown("### Weekly Summary")
 
 if st.button("Generate Weekly Summary"):
@@ -150,14 +216,14 @@ if st.button("Generate Weekly Summary"):
     Include:
     - Average for the week
     - Highest and when
-    - A compliment for the best day
     """
 
     with st.spinner("Generating summary using Gemini..."):
-        response = model.generate_content(prompt)
+        response = gemini_model.generate_content(prompt)
         summary = response.text
 
     st.success("Here's your weekly glucose summary:")
     st.markdown(f"```markdown\n{summary}\n```")
+
 
 
