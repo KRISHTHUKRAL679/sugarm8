@@ -1,4 +1,4 @@
-🍬 Sugar M8 – AI-Powered Glucose Insight & Forecasting for Type 1 Diabetes
+##🍬 Sugar M8 – AI-Powered Glucose Insight & Forecasting for Type 1 Diabetes
 
 Sugar M8 is an intelligent diabetes management platform designed to assist Type 1 diabetes (T1D) patients by providing real-time tracking, personalized predictions, and doctor-friendly insights.
 Built with Streamlit, LightGBM, XGBoost, SHAP, and Google Gemini, it transforms raw glucose logs into meaningful, actionable health insights.
