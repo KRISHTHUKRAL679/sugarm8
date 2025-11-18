@@ -9,3 +9,4 @@ firebase-admin
 matplotlib
 scikit-learn
 lightgbm
+os
