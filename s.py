@@ -134,7 +134,21 @@ def load_explainer():
         return None
 
 model = load_model()
-explainer = load_explainer()
+model = load_model()
+explainer = None
+
+if model is not None:
+    try:
+        # Create the explainer directly from the model
+        # This bypasses the version mismatch error entirely
+        explainer = shap.TreeExplainer(model) 
+    except Exception as e:
+        # Fallback for some specific model types (like pipelines)
+        try:
+             # If model is a pipeline, grab the last step (the actual regressor)
+             explainer = shap.TreeExplainer(model.steps[-1][1])
+        except:
+             st.warning("Could not create SHAP explainer. Predictions will work, but explanations will be hidden.")
 
 # --- Session State ---
 if 'user_info' not in st.session_state:
