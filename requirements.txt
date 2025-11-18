@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+altair
+shap
+google-generativeai
+requests
+firebase-admin
+matplotlib
