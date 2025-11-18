@@ -114,7 +114,11 @@ def load_model():
     try:
         with open('next_day_glucose_model_v4.pkl', 'rb') as f:
             return pickle.load(f)
-    except:
+    except FileNotFoundError:
+        st.error("CRITICAL ERROR: The file 'next_day_glucose_model_v4.pkl' was not found.")
+        return None
+    except Exception as e:
+        st.error(f"CRITICAL MODEL ERROR: {e}")
         return None
 
 @st.cache_resource
