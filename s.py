@@ -126,7 +126,11 @@ def load_explainer():
     try:
         with open('shap_explainer_v4.pkl', 'rb') as f:
             return pickle.load(f)
-    except:
+    except FileNotFoundError:
+        st.error("⚠️ EXPLAINER ERROR: File 'shap_explainer_v4.pkl' not found.")
+        return None
+    except Exception as e:
+        st.error(f"⚠️ EXPLAINER ERROR: {e}")
         return None
 
 model = load_model()
