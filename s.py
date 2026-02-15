@@ -332,10 +332,43 @@ else:
                         st.session_state.predicted_value = (pred * target_std) + target_mean
                         
                         if explainer:
-                            shap_vals = explainer.shap_values(feats)
-                            shap_df = pd.DataFrame({'feature': feats.columns, 'shap_value': shap_vals[0]}).sort_values(by='shap_value', key=abs, ascending=False)
-                            st.session_state.shap_explanation = shap_df
-                            st.session_state.gemini_explanation = get_gemini_explanation(st.session_state.predicted_value, shap_df)
+                            try:
+                                shap_explanation = explainer(feats)
+                                shap_values = shap_explanation.values
+                    
+                            # Handle multi-output case
+                                if shap_values.ndim == 3:
+                                    shap_values = shap_values.sum(axis=-1)
+                        
+                                shap_df = pd.DataFrame({
+                                    "feature": feats.columns,
+                                    "shap_value": shap_values[0]
+                                }).assign(abs_val=lambda x: x.shap_value.abs()) \
+                                  .sort_values("abs_val", ascending=False)
+                        
+                                st.session_state.shap_explanation = shap_df
+                        
+                                # ----- SHOW TO USER -----
+                                st.subheader("Top Feature Contributions (SHAP)")
+                                st.dataframe(shap_df.head(10), use_container_width=True)
+                        
+                                st.markdown("**Key Drivers:**")
+                                for _, row in shap_df.head(5).iterrows():
+                                    direction = "increased" if row["shap_value"] > 0 else "decreased"
+                                    st.markdown(
+                                        f"- {row['feature']} {direction} the prediction "
+                                        f"(SHAP={row['shap_value']:.3f})"
+                                    )
+                        
+                                # Optional: send to Gemini only if working
+                                st.session_state.gemini_explanation = get_gemini_explanation(
+                                    st.session_state.predicted_value,
+                                    shap_df
+                                )
+
+                            except Exception as e:
+                                st.warning(f"SHAP failed: {e}")
+
                 
                 if st.session_state.predicted_value:
                     st.metric("Tomorrow's Avg", f"{st.session_state.predicted_value:.1f} mg/dL")
