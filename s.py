@@ -223,7 +223,7 @@ def get_gemini_explanation(prediction, shap_df):
         {feature_summary}
         Write a short encouraging summary under 80 words with one practical tip.
         """
-        genai.configure(api_key="AIzaSyA8Je_xn1xY-UA10sRNjRt2AsxL94IxRh0")
+        genai.configure(api_key="AIzaSyA_DkN3Z5O717YLWYIXnzFJwqRPo3CxCW8")
         gemini_model = genai.GenerativeModel("gemini-2.0-flash")
         return gemini_model.generate_content(prompt).text
 
