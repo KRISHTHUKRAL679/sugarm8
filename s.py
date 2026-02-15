@@ -17,6 +17,7 @@ FIREBASE_WEB_API_KEY = "AIzaSyB0SgzujXUcuqzr8b86WK__yjJm7D2Zy-g"
 
 # --- Page Config ---
 st.set_page_config(layout="wide", page_title="Sugar M8")
+st.write("SHAP version:", shap.__version__)
 
 
 
@@ -144,6 +145,8 @@ if model is not None:
         # Create the explainer directly from the model
         # This bypasses the version mismatch error entirely
         explainer = shap.TreeExplainer(model) 
+        st.write("Explainer object:", type(explainer))
+
     except Exception as e:
         # Fallback for some specific model types (like pipelines)
         try:
