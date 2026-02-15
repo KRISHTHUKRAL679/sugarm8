@@ -17,7 +17,7 @@ FIREBASE_WEB_API_KEY = "AIzaSyB0SgzujXUcuqzr8b86WK__yjJm7D2Zy-g"
 
 # --- Page Config ---
 st.set_page_config(layout="wide", page_title="Sugar M8")
-st.write(st.secrets)
+
 
 
 # --- UI STYLING ---
@@ -204,29 +204,32 @@ def create_features_for_user(df):
 
 def get_gemini_explanation(prediction, shap_df):
     try:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
         explanation_points = []
         for index, row in shap_df.head(5).iterrows():
-            feature_name = row['feature'].replace("_", " ").replace("mgdl", "(mg/dL)").title()
+            feature_name = row['feature'].replace("_", " ").title()
             impact_dir = "increased" if row['shap_value'] > 0 else "decreased"
-            explanation_points.append(f"- {feature_name} {impact_dir} the prediction.")
+            explanation_points.append(f"{feature_name} {impact_dir} the prediction.")
 
         feature_summary = "\n".join(explanation_points)
 
         prompt = f"""
         The predicted glucose is {prediction:.1f} mg/dL.
-        Factors:
+        Key factors:
         {feature_summary}
-        Write a short encouraging summary under 80 words with one practical tip.
+
+        Write a short encouraging explanation under 80 words with one actionable tip.
         """
 
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
 
         return response.text
 
     except Exception as e:
-        return f"Error generating explanation: {e}"
+        return f"Gemini Error: {str(e)}"
+
 
 
 # ==========================================
