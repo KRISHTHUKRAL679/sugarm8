@@ -18,6 +18,18 @@ FIREBASE_WEB_API_KEY = "AIzaSyB0SgzujXUcuqzr8b86WK__yjJm7D2Zy-g"
 # --- Page Config ---
 st.set_page_config(layout="wide", page_title="Sugar M8")
 
+FEATURE_MAP = {
+    "daily_tir_percent": "Time in Range",
+    "daily_avg_glucose_mgdl": "Average Glucose",
+    "daily_std_glucose_mgdl": "Glucose Variability",
+    "daily_carbs_total": "Total Daily Carbs",
+    "daily_insulin_total": "Total Daily Insulin",
+    "glucose_change": "Change from Yesterday",
+    "glucose_variability_index": "Glucose Stability Index",
+    "insulin_to_carb_ratio": "Insulin-to-Carb Ratio",
+    "daily_avg_glucose_mgdl_lag_1": "Yesterday's Average Glucose",
+    "daily_avg_glucose_mgdl_roll3": "3-Day Average Glucose",
+}
 
 
 
@@ -352,12 +364,32 @@ else:
                                 st.subheader("Top Feature Contributions (SHAP)")
                                 st.dataframe(shap_df.head(10), use_container_width=True)
                         
-                                st.markdown("**Key Drivers:**")
-                                for _, row in shap_df.head(5).iterrows():
-                                    direction = "increased" if row["shap_value"] > 0 else "decreased"
+                                st.markdown("### 🔍 What Influenced Tomorrow’s Prediction?")
+
+                                top3 = shap_df.head(3)
+                                
+                                for _, row in top3.iterrows():
+                                    feature = row["feature"]
+                                    value = row["shap_value"]
+                                
+                                    readable_name = FEATURE_MAP.get(feature, feature.replace("_", " ").title())
+                                
+                                    # Strength of effect
+                                    magnitude = abs(value)
+                                    if magnitude > 0.3:
+                                        strength = "strong"
+                                    elif magnitude > 0.15:
+                                        strength = "moderate"
+                                    else:
+                                        strength = "small"
+                                
+                                    if value > 0:
+                                        direction_text = "pushed your glucose prediction higher"
+                                    else:
+                                        direction_text = "helped lower your glucose prediction"
+                                
                                     st.markdown(
-                                        f"- {row['feature']} {direction} the prediction "
-                                        f"(SHAP={row['shap_value']:.3f})"
+                                        f"- **{readable_name}** had a **{strength} effect** and {direction_text}."
                                     )
                         
                                 # Optional: send to Gemini only if working
