@@ -17,7 +17,7 @@ FIREBASE_WEB_API_KEY = "AIzaSyB0SgzujXUcuqzr8b86WK__yjJm7D2Zy-g"
 
 # --- Page Config ---
 st.set_page_config(layout="wide", page_title="Sugar M8")
-st.write("SHAP version:", shap.__version__)
+
 
 
 
