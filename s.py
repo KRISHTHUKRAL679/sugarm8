@@ -204,21 +204,28 @@ def get_gemini_explanation(prediction, shap_df):
     try:
         explanation_points = []
         for index, row in shap_df.head(5).iterrows():
-            feature_name = row['feature'].replace("_", " ").replace("mgdl", "(mg/dL)").replace("lag 1", "yesterday's").title()
+            feature_name = row['feature'].replace("_", " ").replace("mgdl", "(mg/dL)").title()
             impact_dir = "increased" if row['shap_value'] > 0 else "decreased"
-            explanation_points.append(f"- '{feature_name}' {impact_dir} the prediction.")
+            explanation_points.append(f"- {feature_name} {impact_dir} the prediction.")
+
         feature_summary = "\n".join(explanation_points)
+
         prompt = f"""
-        You are a helpful AI assistant for diabetes management.
         The predicted glucose is {prediction:.1f} mg/dL.
-        Factors: {feature_summary}
-        Write a simple, encouraging summary (under 80 words) with one actionable tip.
+        Factors:
+        {feature_summary}
+        Write a short encouraging summary under 80 words with one practical tip.
         """
-        genai.configure(api_key="AIzaSyBK6XIq1vDZQkkXq65humdnn9bBKr7pVLY")
-        gemini_model = genai.GenerativeModel("gemini-2.0-flash")
-        return gemini_model.generate_content(prompt).text
+
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(prompt)
+
+        return response.text
+
     except Exception as e:
         return f"Error generating explanation: {e}"
+
 
 # ==========================================
 #               LOGIN PAGE
