@@ -24,11 +24,10 @@ FEATURE_MAP = {
     "daily_std_glucose_mgdl": "Glucose Variability",
     "daily_carbs_total": "Total Daily Carbs",
     "daily_insulin_total": "Total Daily Insulin",
-    "glucose_change": "Change from Yesterday",
-    "glucose_variability_index": "Glucose Stability Index",
     "insulin_to_carb_ratio": "Insulin-to-Carb Ratio",
     "daily_avg_glucose_mgdl_lag_1": "Yesterday's Average Glucose",
-    "daily_avg_glucose_mgdl_roll3": "3-Day Average Glucose",
+    "daily_avg_glucose_mgdl_lag_2": "2 Days Ago Glucose",
+    "daily_avg_glucose_mgdl_lag_3": "3 Days Ago Glucose"
 }
 
 
@@ -127,10 +126,10 @@ def auth_user(email, password, mode="signin"):
 @st.cache_resource
 def load_model():
     try:
-        with open('next_day_glucose_model_v4.pkl', 'rb') as f:
+        with open('better_glucose_model.pkl', 'rb') as f:
             return pickle.load(f)
     except FileNotFoundError:
-        st.error("CRITICAL ERROR: The file 'next_day_glucose_model_v4.pkl' was not found.")
+        st.error("CRITICAL ERROR: The file 'better_glucose_model.pkl' was not found.")
         return None
     except Exception as e:
         st.error(f"CRITICAL MODEL ERROR: {e}")
@@ -200,21 +199,29 @@ def sync_data_from_firebase():
 def create_features_for_user(df):
     df = df.copy()
     df['p_num'] = 1
-    features_to_lag = ['daily_avg_glucose_mgdl', 'daily_std_glucose_mgdl',
-                       'daily_tir_percent', 'daily_carbs_total', 'daily_insulin_total']
+
+    # --- Lag features (ONLY 1–3) ---
+    features_to_lag = [
+        'daily_avg_glucose_mgdl',
+        'daily_std_glucose_mgdl',
+        'daily_tir_percent',
+        'daily_carbs_total',
+        'daily_insulin_total'
+    ]
+
     for feature in features_to_lag:
-        for i in range(1, 8):
+        for i in range(1, 4):  # 🔥 match training
             df[f'{feature}_lag_{i}'] = df.groupby('p_num')[feature].shift(i)
-    for col in ['daily_avg_glucose_mgdl', 'daily_std_glucose_mgdl', 'daily_tir_percent']:
-        df[f'{col}_roll3'] = df.groupby('p_num')[col].transform(lambda x: x.rolling(3, min_periods=1).mean())
-        df[f'{col}_roll7'] = df.groupby('p_num')[col].transform(lambda x: x.rolling(7, min_periods=1).mean())
+
+    # --- Derived features (same as model) ---
     df['insulin_to_carb_ratio'] = df['daily_insulin_total'] / (df['daily_carbs_total'] + 1e-3)
-    df['glucose_variability_index'] = df['daily_std_glucose_mgdl'] / (df['daily_avg_glucose_mgdl'] + 1e-3)
-    df['carb_per_glucose'] = df['daily_carbs_total'] / (df['daily_avg_glucose_mgdl'] + 1e-3)
-    df['glucose_change'] = df.groupby('p_num')['daily_avg_glucose_mgdl'].diff(1)
     df['day_of_week'] = df['date'].dt.dayofweek
+
+    # --- Handle missing values ---
     df.fillna(0, inplace=True)
+
     df['p_num'] = df['p_num'].astype('category')
+
     return df
 
 def get_gemini_explanation(prediction, shap_df):
@@ -330,10 +337,7 @@ else:
                             })
                         user_daily_df = pd.DataFrame(daily_summary_list).sort_values(by='date')
                         
-                        target_mean = user_daily_df['daily_avg_glucose_mgdl'].mean()
-                        target_std = user_daily_df['daily_avg_glucose_mgdl'].std() + 1e-3
-                        cols = ['daily_avg_glucose_mgdl', 'daily_std_glucose_mgdl', 'daily_tir_percent', 'daily_carbs_total', 'daily_insulin_total']
-                        user_daily_df[cols] = (user_daily_df[cols] - user_daily_df[cols].mean()) / (user_daily_df[cols].std() + 1e-3)
+                       
                         
                         feats = create_features_for_user(user_daily_df).tail(1).copy()
                         for col in model.feature_name_:
@@ -341,7 +345,7 @@ else:
                         feats = feats[model.feature_name_]
                         
                         pred = model.predict(feats)[0]
-                        st.session_state.predicted_value = (pred * target_std) + target_mean
+                        st.session_state.predicted_value = pred
                         
                         if explainer:
                             try:
