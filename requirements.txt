@@ -9,4 +9,5 @@ firebase-admin
 matplotlib
 scikit-learn
 lightgbm
+xgboost
 
